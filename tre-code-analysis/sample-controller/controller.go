@@ -159,3 +159,8 @@ func (c *Controller) processNextWorkItem() bool {
 
 	return true
 }
+
+func (c *Controller) syncHandler(key string) error {
+	fmt.Println("get key " + key)
+	return nil
+}
