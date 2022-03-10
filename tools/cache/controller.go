@@ -419,6 +419,7 @@ func processDeltas(
 	// from oldest to newest
 	for _, d := range deltas {
 		obj := d.Object
+		// transformer 默认为空，不考虑
 		if transformer != nil {
 			var err error
 			obj, err = transformer(obj)

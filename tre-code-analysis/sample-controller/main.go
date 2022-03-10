@@ -1,13 +1,20 @@
 package main
 
 import (
+	"time"
+
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tre-code-analysis/signals"
 	"k8s.io/klog/v2"
-	"time"
 )
+
+/**
+关注关键原理
+关注可扩展点
+关注单测怎么写
+*/
 
 func main() {
 	klog.InitFlags(nil)

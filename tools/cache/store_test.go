@@ -120,8 +120,50 @@ func doTestIndex(t *testing.T, indexer Indexer) {
 	}
 }
 
+func doTestIndex2(t *testing.T, indexer Indexer) {
+	mkObj := func(name string, labels ...string) testStoreObject2 {
+		return testStoreObject2{
+			name:   name,
+			labels: labels,
+		}
+	}
+
+	expected := map[string]sets.String{}
+	expected["tse"] = sets.NewString("pod1", "pod2")
+	expected["app-test"] = sets.NewString("pod1", "pod2", "pod3")
+	expected["app-tre"] = sets.NewString("pod3")
+
+	indexer.Add(mkObj("pod1", "tse", "app-test"))
+	indexer.Add(mkObj("pod2", "tse", "app-test"))
+	indexer.Add(mkObj("pod3", "app-tre", "app-test"))
+
+	{
+		for k, v := range expected {
+			indexFound := sets.String{}
+			res, err := indexer.ByIndex("by_label", k)
+			if err != nil {
+				t.Errorf("Unexpected error %v", err)
+			}
+			for _, obj := range res {
+				indexFound.Insert(obj.(testStoreObject2).name)
+			}
+			if !v.HasAll(indexFound.List()...) {
+				t.Errorf("index %s expected %v, but found %v", k, v, indexFound.List())
+			}
+		}
+	}
+}
+
 func testStoreKeyFunc(obj interface{}) (string, error) {
 	return obj.(testStoreObject).id, nil
+}
+
+func testStoreKeyFunc2(obj interface{}) (string, error) {
+	return obj.(testStoreObject2).name, nil
+}
+
+func testStoreIndexFunc2(obj interface{}) ([]string, error) {
+	return obj.(testStoreObject2).labels, nil
 }
 
 func testStoreIndexFunc(obj interface{}) ([]string, error) {
@@ -134,9 +176,20 @@ func testStoreIndexers() Indexers {
 	return indexers
 }
 
+func testStoreIndexers2() Indexers {
+	indexers := Indexers{}
+	indexers["by_label"] = testStoreIndexFunc2
+	return indexers
+}
+
 type testStoreObject struct {
 	id  string
 	val string
+}
+
+type testStoreObject2 struct {
+	name   string
+	labels []string
 }
 
 func TestCache(t *testing.T) {
@@ -154,6 +207,10 @@ func TestUndeltaStore(t *testing.T) {
 
 func TestIndex(t *testing.T) {
 	doTestIndex(t, NewIndexer(testStoreKeyFunc, testStoreIndexers()))
+}
+
+func TestIndex2(t *testing.T) {
+	doTestIndex2(t, NewIndexer(testStoreKeyFunc2, testStoreIndexers2()))
 }
 
 func TestKeyError(t *testing.T) {
