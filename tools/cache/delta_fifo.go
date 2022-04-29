@@ -101,6 +101,7 @@ type DeltaFIFO struct {
 
 	// `items` maps a key to a Deltas.
 	// Each such Deltas has at least one Delta.
+	// key 是 object key
 	items map[string]Deltas
 
 	// `queue` maintains FIFO order of keys for consumption in Pop().
@@ -526,29 +527,35 @@ func (f *DeltaFIFO) Pop(process PopProcessFunc) (interface{}, error) {
 
 			f.cond.Wait()
 		}
+		// 拿到队头
 		id := f.queue[0]
+		// 出队
 		f.queue = f.queue[1:]
 		depth := len(f.queue)
 		if f.initialPopulationCount > 0 {
 			f.initialPopulationCount--
 		}
+		// 拿到队头 object
 		item, ok := f.items[id]
 		if !ok {
 			// This should never happen
 			klog.Errorf("Inconceivable! %q was in f.queue but not f.items; ignoring.", id)
 			continue
 		}
+		// 从 map 中移除队头元素
 		delete(f.items, id)
 		// Only log traces if the queue depth is greater than 10 and it takes more than
 		// 100 milliseconds to process one item from the queue.
 		// Queue depth never goes high because processing an item is locking the queue,
 		// and new items can't be added until processing finish.
 		// https://github.com/kubernetes/kubernetes/issues/103789
+		// 如果队列有积压，需要打印日志，帮忙排查问题
 		if depth > 10 {
 			trace := utiltrace.New("DeltaFIFO Pop Process",
 				utiltrace.Field{Key: "ID", Value: id},
 				utiltrace.Field{Key: "Depth", Value: depth},
 				utiltrace.Field{Key: "Reason", Value: "slow event handlers blocking the queue"})
+			// 将超时放到 defer 里，超时才去打日志
 			defer trace.LogIfLong(100 * time.Millisecond)
 		}
 		err := process(item)
@@ -628,11 +635,14 @@ func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 	// Detect deletions not already in the queue.
 	knownKeys := f.knownObjects.ListKeys()
 	queuedDeletions := 0
+	// 遍历缓存中的每个 key
 	for _, k := range knownKeys {
+		// 缓存中的 key ，本次 list 中也有，不做删除动作
 		if keys.Has(k) {
 			continue
 		}
 
+		// 缓存中的 key ，本次 list 没有。可能已经被删除，但是 watch 丢失了 delete 事件，这里产生一个 delete 事件
 		deletedObj, exists, err := f.knownObjects.GetByKey(k)
 		if err != nil {
 			deletedObj = nil
@@ -647,6 +657,7 @@ func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 		}
 	}
 
+	// populated 表示是否已经被 list 填充了
 	if !f.populated {
 		f.populated = true
 		f.initialPopulationCount = keys.Len() + queuedDeletions
@@ -693,6 +704,7 @@ func (f *DeltaFIFO) syncKeyLocked(key string) error {
 	if err != nil {
 		return KeyError{obj, err}
 	}
+	// 如果当前 Queue 中有 event ，就不用添加 sync 事件
 	if len(f.items[id]) > 0 {
 		return nil
 	}
