@@ -378,7 +378,7 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 			case <-cancelCh:
 				return
 			}
-			if r.ShouldResync == nil || r.ShouldResync() {
+			if r.ShouldResync == nil ||r.ShouldResync() {
 				klog.V(4).Infof("%s: forcing resync", r.name)
 				if err := r.store.Resync(); err != nil {
 					resyncerrc <- err

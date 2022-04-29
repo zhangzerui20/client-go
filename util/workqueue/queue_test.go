@@ -17,6 +17,7 @@ limitations under the License.
 package workqueue_test
 
 import (
+	"fmt"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -59,7 +60,7 @@ func TestBasic(t *testing.T) {
 		}
 
 		// Start consumers
-		const consumers = 10
+		const consumers = 5
 		consumerWG := sync.WaitGroup{}
 		consumerWG.Add(consumers)
 		for i := 0; i < consumers; i++ {
@@ -82,9 +83,12 @@ func TestBasic(t *testing.T) {
 		}
 
 		producerWG.Wait()
+		fmt.Printf("get queue len %d\n", test.queue.Len())
 		test.queueShutDown(test.queue)
+		fmt.Printf("get queue len %d\n", test.queue.Len())
 		test.queue.Add("added after shutdown!")
 		consumerWG.Wait()
+		fmt.Printf("get queue len %d\n", test.queue.Len())
 		if test.queue.Len() != 0 {
 			t.Errorf("Expected the queue to be empty, had: %v items", test.queue.Len())
 		}

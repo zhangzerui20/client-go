@@ -86,6 +86,7 @@ type Type struct {
 
 	cond *sync.Cond
 
+	// 已经 shuttingDown 且队列为空，get 就不用等了
 	shuttingDown bool
 	drain        bool
 
@@ -153,9 +154,13 @@ func (q *Type) Len() int {
 func (q *Type) Get() (item interface{}, shutdown bool) {
 	q.cond.L.Lock()
 	defer q.cond.L.Unlock()
+
+	// 队列空 且 未 shutdown ，需要 wait
 	for len(q.queue) == 0 && !q.shuttingDown {
 		q.cond.Wait()
 	}
+
+	// 队列空，且 shutdown 了，直接返回并告知调用者，get 结束
 	if len(q.queue) == 0 {
 		// We must be shutting down.
 		return nil, true

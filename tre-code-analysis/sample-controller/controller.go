@@ -41,11 +41,11 @@ func NewController(
 		workqueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "pods"),
 	}
 
-	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	podInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.handleAdd,
 		UpdateFunc: controller.handleUpdate,
 		DeleteFunc: controller.handleDelete,
-	})
+	}, 8 * time.Second)
 
 	return controller
 }
@@ -161,6 +161,6 @@ func (c *Controller) processNextWorkItem() bool {
 }
 
 func (c *Controller) syncHandler(key string) error {
-	fmt.Println("get key " + key)
+	//fmt.Println("get key " + key)
 	return nil
 }

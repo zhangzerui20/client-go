@@ -23,7 +23,7 @@ func main() {
 
 	stopCh := signals.SetupSignalHandler()
 
-	informerFactory := informers.NewSharedInformerFactory(clientSet, time.Minute)
+	informerFactory := informers.NewSharedInformerFactory(clientSet, 5 * time.Second)
 	informer := informerFactory.Core().V1().Pods()
 
 	controller := NewController(clientSet, informer)
