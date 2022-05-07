@@ -28,6 +28,10 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
+// queue.ShutDown 后，新的数据不能加入，存量的数据可以继续 get ，queue 中没有数据时，get 会返回特殊标志，让 consumer 可以退出。
+// 提供了两个 shutdown 方法
+// 1. ShutDown 			非阻塞管理
+// 2. ShutDownWithDrain 阻塞关闭，直到 queue 全部消费完再返回
 func TestBasic(t *testing.T) {
 	tests := []struct {
 		queue         *workqueue.Type
@@ -184,6 +188,9 @@ func TestReinsert(t *testing.T) {
 	// Add it back while processing
 	q.Add(i)
 
+	// Done 之前调了 Add ，Done 的时候，会再次把这个 item 加入到队列。
+	// 即这里会做个去重，多次添加，只会进入一个 item。
+
 	// Finish it up
 	q.Done(i)
 
@@ -215,6 +222,7 @@ func TestQueueDrainageUsingShutDownWithDrain(t *testing.T) {
 	finishedWG.Add(1)
 	go func() {
 		defer finishedWG.Done()
+		// 阻塞直到 processing 中的 item 被处理完
 		q.ShutDownWithDrain()
 	}()
 
@@ -225,6 +233,8 @@ func TestQueueDrainageUsingShutDownWithDrain(t *testing.T) {
 	for !shuttingDown {
 		_, shuttingDown = q.Get()
 	}
+
+	// 取出完不会停止， done 全部结束后才会停止。
 
 	// Mark the first two items as done, as to finish up
 	q.Done(firstItem)

@@ -82,8 +82,11 @@ type Type struct {
 	// These things may be simultaneously in the dirty set. When we finish
 	// processing something and remove it from this set, we'll check if
 	// it's in the dirty set, and if so, add it to the queue.
+
+	// 使用 processing 保证不会多线程情况下，同一个 item 不会被多个线程 get 到处理
 	processing set
 
+	// 无界队列，只有一个不为空，通知 consumer 来消费的信号
 	cond *sync.Cond
 
 	// 已经 shuttingDown 且队列为空，get 就不用等了
@@ -121,6 +124,7 @@ func (s set) len() int {
 func (q *Type) Add(item interface{}) {
 	q.cond.L.Lock()
 	defer q.cond.L.Unlock()
+
 	if q.shuttingDown {
 		return
 	}
@@ -193,6 +197,7 @@ func (q *Type) Done(item interface{}) {
 		q.queue = append(q.queue, item)
 		q.cond.Signal()
 	} else if q.processing.len() == 0 {
+		// 这里ide通知，为了 ShutDownWithDrain 中的 waitForProcessing wait
 		q.cond.Signal()
 	}
 }
