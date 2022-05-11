@@ -198,6 +198,7 @@ func (q *delayingType) waitingLoop() {
 	waitingForQueue := &waitForPriorityQueue{}
 	heap.Init(waitingForQueue)
 
+	// waitingForQueue 中元素的 set ，方便检查是否 already exist
 	waitingEntryByData := map[t]*waitFor{}
 
 	for {
@@ -208,8 +209,10 @@ func (q *delayingType) waitingLoop() {
 		now := q.clock.Now()
 
 		// Add ready entries
+		// 所有 ready 的，从 heap 中取出，加入到 queue，后面再处理未 ready 的
 		for waitingForQueue.Len() > 0 {
 			entry := waitingForQueue.Peek().(*waitFor)
+
 			if entry.readyAt.After(now) {
 				break
 			}
@@ -242,6 +245,7 @@ func (q *delayingType) waitingLoop() {
 
 		case waitEntry := <-q.waitingForAddCh:
 			if waitEntry.readyAt.After(q.clock.Now()) {
+				// 未 ready ，加入堆
 				insert(waitingForQueue, waitingEntryByData, waitEntry)
 			} else {
 				q.Add(waitEntry.data)
