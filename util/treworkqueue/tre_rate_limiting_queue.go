@@ -12,7 +12,7 @@ type treRateLimitQueue struct{
 	rateLimiter workqueue.RateLimiter
 }
 
-func NewDelayingQueueWithCustomClock(clock clock.WithTicker, name string) DelayingInterface {
+func NewDelayingQueueWithCustomClock(clock clock.WithTicker, name string) workqueue.DelayingInterface {
 	return newDelayingQueue(clock, NewNamed(name), name)
 }
 

@@ -18,6 +18,7 @@ package treworkqueue
 
 import (
 	"fmt"
+	"k8s.io/client-go/util/workqueue"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -232,7 +233,7 @@ func BenchmarkDelayingQueue_AddAfter(b *testing.B) {
 	}
 }
 
-func waitForAdded(q DelayingInterface, depth int) error {
+func waitForAdded(q workqueue.DelayingInterface, depth int) error {
 	return wait.Poll(1*time.Millisecond, 10*time.Second, func() (done bool, err error) {
 		if q.Len() == depth {
 			return true, nil
@@ -242,7 +243,8 @@ func waitForAdded(q DelayingInterface, depth int) error {
 	})
 }
 
-func waitForWaitingQueueToFill(q DelayingInterface) error {
+// 等待元素被加入到队列中
+func waitForWaitingQueueToFill(q workqueue.DelayingInterface) error {
 	return wait.Poll(1*time.Millisecond, 10*time.Second, func() (done bool, err error) {
 		if len(q.(*delayingType).waitingForAddCh) == 0 {
 			return true, nil
