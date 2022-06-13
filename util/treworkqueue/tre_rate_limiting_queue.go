@@ -73,7 +73,10 @@ func newDelayingQueue(clock clock.WithTicker, q workqueue.Interface, name string
 
 func (t treRateLimitQueue) AddAfter(item interface{}, duration time.Duration) {
 
-
+	w := waitFor{
+		data: item,
+		readyAt: t.clock.Now().Sub(duration),
+	}
 
 }
 
