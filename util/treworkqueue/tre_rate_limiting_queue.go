@@ -10,10 +10,18 @@ type treRateLimitQueue struct{
 	workqueue.Interface
 
 	rateLimiter workqueue.RateLimiter
+
+	waitingForAddCh chan struct{}
+
+	clock clock.WithTicker
 }
 
 func NewDelayingQueueWithCustomClock(clock clock.WithTicker, name string) workqueue.DelayingInterface {
 	return newDelayingQueue(clock, NewNamed(name), name)
+}
+
+func newDelayingQueue() workqueue.DelayingInterface {
+
 }
 
 func (t treRateLimitQueue) AddAfter(item interface{}, duration time.Duration) {

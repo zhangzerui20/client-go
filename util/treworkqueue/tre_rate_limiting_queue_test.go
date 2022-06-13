@@ -243,10 +243,10 @@ func waitForAdded(q workqueue.DelayingInterface, depth int) error {
 	})
 }
 
-// 等待元素被加入到队列中
+// 等待元素已经从 channel 中取出了，一般是立即取出
 func waitForWaitingQueueToFill(q workqueue.DelayingInterface) error {
 	return wait.Poll(1*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		if len(q.(*delayingType).waitingForAddCh) == 0 {
+		if len(q.(*treRateLimitQueue).waitingForAddCh) == 0 {
 			return true, nil
 		}
 

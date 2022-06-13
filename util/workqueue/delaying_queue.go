@@ -224,6 +224,8 @@ func (q *delayingType) waitingLoop() {
 
 		// Set up a wait for the first item's readyAt (if one exists)
 		nextReadyAt := never
+
+		// 还有，必定是不 ready 的，此时 peek 的必定是最近的，未 ready 的
 		if waitingForQueue.Len() > 0 {
 			if nextReadyAtTimer != nil {
 				nextReadyAtTimer.Stop()
