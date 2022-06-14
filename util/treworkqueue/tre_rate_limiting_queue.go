@@ -1,8 +1,10 @@
 package treworkqueue
 
 import (
+	"container/heap"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/utils/clock"
+	"sync"
 	"time"
 )
 
@@ -16,6 +18,14 @@ type treRateLimitQueue struct{
 	waitingForAddCh chan *waitFor
 
 	clock clock.WithTicker
+
+	qq waitForPriorityQueue
+
+	nextEnqueue chan *waitFor
+
+	stopCh chan struct{}
+
+	stopOnce sync.Once
 }
 
 // waitFor holds the data to add and the time it should be added
@@ -63,21 +73,42 @@ func NewDelayingQueueWithCustomClock(clock clock.WithTicker, name string) workqu
 }
 
 func newDelayingQueue(clock clock.WithTicker, q workqueue.Interface, name string) workqueue.DelayingInterface {
+
+	qq := waitForPriorityQueue{}
+	heap.Init(&qq)
+
 	return treRateLimitQueue{
 		Interface: q,
 		rateLimiter: workqueue.DefaultControllerRateLimiter(),
 		waitingForAddCh: make(chan *waitFor, 1000),
 		clock: clock,
+		qq: qq,
 	}
+
+
+
+}
+
+func (t treRateLimitQueue) ShutDown(){
+	t.stopOnce.Do(func() {
+		t.Interface.ShutDown()
+		close(t.stopCh)
+	})
 }
 
 func (t treRateLimitQueue) AddAfter(item interface{}, duration time.Duration) {
 
 	w := waitFor{
 		data: item,
-		readyAt: t.clock.Now().Sub(duration),
+		readyAt: t.clock.Now().Add(duration),
+		index: t.qq.Len(),
 	}
 
+	heap.Push(&t.qq, w)
+
+	go func() {
+
+	}()
 }
 
 func (t treRateLimitQueue) AddRateLimited(item interface{}) {
